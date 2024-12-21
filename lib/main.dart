@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'joke_service.dart'; // Import the JokeService file
 
 void main() {
-  runApp(const JokeApp());
+  runApp(const MyApp());
 }
 
-class JokeApp extends StatelessWidget {
-  const JokeApp({Key? key}) : super(key: key);
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -41,15 +41,27 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     try {
-      final jokes =
-          await _jokeService.fetchJokes(); // Fetch jokes using JokeService
+      // Attempt to fetch jokes from the API
+      final jokes = await _jokeService.fetchJokesFromApi();
+      await _jokeService.saveJokesToCache(jokes); // Cache the jokes
       setState(() {
         _jokes = jokes;
       });
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch jokes: $error')),
-      );
+      // If API call fails, fetch jokes from cache
+      final cachedJokes = await _jokeService.fetchJokesFromCache();
+      if (cachedJokes.isNotEmpty) {
+        setState(() {
+          _jokes = cachedJokes;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Loaded jokes from cache')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch jokes: $error')),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
